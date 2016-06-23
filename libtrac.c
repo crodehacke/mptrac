@@ -532,6 +532,10 @@ void read_ctl(
   /* Meteorological data... */
   ctl->dt_met = scan_ctl(filename, argc, argv, "DT_MET", -1, "21600", NULL);
 
+  /* Isosurface parameter... */
+  ctl->isosurf
+    = (int) scan_ctl(filename, argc, argv, "ISOSURF", -1, "0", NULL);
+
   /* Diffusion parameters... */
   ctl->turb_dx_trop
     = scan_ctl(filename, argc, argv, "TURB_DX_TROP", -1, "50.0", NULL);
@@ -707,6 +711,9 @@ void read_met(
   /* Extrapolate data for lower boundary... */
   read_met_extrapolate(met);
 
+  /* Copy data to obtain periodic boundary conditions... */
+  read_met_periodic(met);
+
   /* Close file... */
   NC(nc_close(ncid));
 }
@@ -783,6 +790,37 @@ void read_met_help(
 	if (dest[ix][iy][ip] < -1e10 || dest[ix][iy][ip] > 1e10)
 	  dest[ix][iy][ip] = GSL_NAN;
       }
+}
+
+/*****************************************************************************/
+
+void read_met_periodic(
+  met_t * met) {
+
+  int ip, iy;
+
+  /* Check longitudes... */
+  if (fabs(met->lon[met->nx - 1] - met->lon[0] - 360) < 0.01)
+    return;
+
+  /* Increase longitude counter... */
+  if ((++met->nx) > EX)
+    ERRMSG("Cannot create periodic boundary conditions!");
+
+  /* Set longitude... */
+  met->lon[met->nx - 1] = met->lon[met->nx - 2] + met->lon[1] - met->lon[0];
+
+  /* Loop over latitudes and pressure levels... */
+  for (iy = 0; iy < met->ny; iy++)
+    for (ip = 0; ip < met->np; ip++) {
+      met->ps[met->nx - 1][iy] = met->ps[0][iy];
+      met->u[met->nx - 1][iy][ip] = met->u[0][iy][ip];
+      met->v[met->nx - 1][iy][ip] = met->v[0][iy][ip];
+      met->w[met->nx - 1][iy][ip] = met->w[0][iy][ip];
+      met->t[met->nx - 1][iy][ip] = met->t[0][iy][ip];
+      met->h2o[met->nx - 1][iy][ip] = met->h2o[0][iy][ip];
+      met->o3[met->nx - 1][iy][ip] = met->o3[0][iy][ip];
+    }
 }
 
 /*****************************************************************************/
@@ -1061,7 +1099,7 @@ double tropopause(
   p1 = LIN(lats[ilat], tps[imon + 1][ilat],
 	   lats[ilat + 1], tps[imon + 1][ilat + 1], lat);
   pt = LIN(doys[imon], p0, doys[imon + 1], p1, doy);
-  
+
   /* Return tropopause pressure... */
   return pt;
 }

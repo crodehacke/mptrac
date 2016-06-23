@@ -145,7 +145,7 @@
 #define EP 66
 
 /*! Maximum number of longitudes for meteorological data. */
-#define EX 360
+#define EX 361
 
 /*! Maximum number of latitudes for meteorological data. */
 #define EY 181
@@ -234,6 +234,9 @@ typedef struct {
 
   /*! Time step of meteorological data [s]. */
   double dt_met;
+
+  /*! Isosurface parameter (0=none, 1=pressure, 2=density, 3=theta). */
+  int isosurf;
 
   /*! Horizontal turbulent diffusion coefficient (troposphere) [m^2/s]. */
   double turb_dx_trop;
@@ -601,6 +604,10 @@ void read_met_help(
   int np,
   float dest[EX][EY][EP],
   float scl);
+
+/*! Create meteorological data with periodic boundary conditions. */
+void read_met_periodic(
+  met_t * met);
 
 /*! Read a control parameter from file or command line. */
 double scan_ctl(
